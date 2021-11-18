@@ -1,6 +1,6 @@
 use std::fmt;
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 
 #[derive(Hash, PartialEq, Eq, Clone, Debug)]
 pub enum Symbol{
@@ -12,7 +12,7 @@ type Term = Vec<Symbol>;
 type Rule = HashMap<Symbol,Vec<Term>>;
 
 pub struct Parser {
-    first: HashMap<Symbol, Vec<Symbol>>,
+    first: HashMap<Symbol, HashSet<Symbol>>,
     rules: Rule,
 }
 
@@ -69,13 +69,76 @@ impl Parser {
             println!();
         }
     }
+
+    fn getFirst(&mut self){
+        loop{
+            let prev_first=self.first.clone();
+            
+            for (key, terms) in &self.rules{
+                let first=self.first.get_mut(key);
+                let first=match first{
+                    Some(set)=>set,
+                    None => {
+                        self.first.insert(key.clone(), HashSet::new());
+                        self.first.get_mut(key).unwrap()
+                    }
+                };
+                for term in terms{
+                    match term.get(0){
+                        Some(symbol)=>{
+                            if matches!(symbol, Symbol::Terminal(_)){
+                                first.insert(symbol.clone());
+                            }else{
+                                let first2=prev_first.get(symbol);
+                                let first2=match first2{
+                                    Some(set)=>set.clone(),
+                                    None => {
+                                        HashSet::new()
+                                    }
+                                };
+                                first.extend(first2.into_iter().map(|i| i.clone()),);
+                            }
+                        },
+                        None =>{
+                            first.insert(Symbol::Terminal("".to_string()));
+                        }
+                    }
+                }
+            }
+
+            if self.first==prev_first{
+                break;
+            }
+        }
+    }
+
+    fn printFirst(&self){
+        for (key, set) in &self.first{
+            print!("{}:", key);
+            for symbol in set{
+                print!("{} ", symbol);
+            }
+            println!();
+        }
+    }
+
+    pub fn parse(&mut self){
+        println!("1. 生成FIRST和FOLLOW集合");
+        self.getFirst();
+        self.printFirst();
+    }
 }
 
 impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Symbol::Nonterminal(n) => write!(f, "{}", n),
-            Symbol::Terminal(t) => write!(f, "{}", t),
+            Symbol::Terminal(t) => {
+                if t.is_empty(){
+                    write!(f, "ε")
+                }else{
+                    write!(f, "{}", t)}
+                }
         }
     }
 }

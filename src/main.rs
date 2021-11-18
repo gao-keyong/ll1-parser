@@ -23,4 +23,5 @@ fn main() {
     parser.add_rule("F", "(E)");
     parser.add_rule("F", "num");
     parser.list_rules();
+    parser.parse();
 }
