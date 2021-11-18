@@ -1,5 +1,4 @@
 use structopt::StructOpt;
-use ll1_parser::rule::Symbol;
 use ll1_parser::{parser};
 
 #[derive(StructOpt, Debug)]
