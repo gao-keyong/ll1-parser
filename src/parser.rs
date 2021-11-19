@@ -16,6 +16,7 @@ pub struct Parser {
     follow: HashMap<Symbol, HashSet<Symbol>>,
     rules: Rule,
     start_symbol: Symbol,
+    table: HashMap<(Symbol, Symbol), (Symbol, Term)>,
 }
 
 impl Parser {
@@ -25,6 +26,7 @@ impl Parser {
             follow: HashMap::new(),
             rules: Rule::new(),
             start_symbol: Symbol::Nonterminal("".to_string()),
+            table: HashMap::new(),
         }
     }
 
@@ -227,6 +229,53 @@ impl Parser {
         }
     }
 
+    fn getTable(&mut self) {
+        for (key, terms) in &self.rules {
+            for term in terms {
+                let mut i = 0;
+                while i < term.len() {
+                    let alpha = &term[i];
+                    match alpha {
+                        Symbol::Terminal(t) => {
+                            self.table
+                                .insert((key.clone(), alpha.clone()), (key.clone(), term.clone()));
+                        }
+                        Symbol::Nonterminal(n) => {
+                            for a in &self.first[&alpha] {
+                                if a != &Symbol::Terminal("".to_string()) {
+                                    self.table.insert(
+                                        (key.clone(), a.clone()),
+                                        (key.clone(), term.clone()),
+                                    );
+                                }
+                            }
+                            if self.first[alpha].contains(&Symbol::Nonterminal("".to_string())) {
+                                break;
+                            }
+                        }
+                        _ => break,
+                    }
+                    i += 1;
+                }
+                if i == term.len() {
+                    for b in &self.follow[key] {
+                        if let Symbol::Nonterminal(n) = b {
+                            self.table
+                                .insert((key.clone(), b.clone()), (key.clone(), term.clone()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn printTable(&self) {
+        for (key, value) in &self.table {
+            print!("{:?}:{:?}", key, value);
+            println!();
+        }
+    }
+
     pub fn parse(&mut self) {
         println!("1. 生成FIRST和FOLLOW集合");
         self.getFirst();
@@ -234,6 +283,9 @@ impl Parser {
         self.getFollow();
         println!("Follow集合");
         self.printFollow();
+        println!("2. 生成预测分析表");
+        self.getTable();
+        self.printTable();
     }
 }
 
