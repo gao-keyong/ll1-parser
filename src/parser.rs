@@ -327,7 +327,7 @@ impl Parser {
         tableT.printstd();
     }
 
-    pub fn parse(&mut self) {
+    pub fn parse(&mut self, expr: &str) {
         println!("1. 生成FIRST和FOLLOW集合");
         self.getFirst();
         println!("First集合");
@@ -338,6 +338,77 @@ impl Parser {
         println!("2. 生成预测分析表");
         self.getTable();
         self.printTable();
+        println!("3. 语法预测分析");
+        let mut input = expr.to_string() + "$";
+        let num_re = Regex::new(r"[1-9]\d*(\.\d+)?").unwrap();
+        let letter_re = Regex::new(r"num|\+|\-|\*|/|\(|\)|\$").unwrap();
+        // println!("{:?}",num_re.captures(&input));
+        input = num_re.replace_all(&input, "num").to_string();
+        let mut stack = vec![
+            Symbol::Terminal("$".to_string()),
+            Symbol::Nonterminal(self.start_symbol.to_string()),
+        ];
+        let mut table_t = Table::new();
+        table_t.add_row(Row::from(["栈", "输入", "输出"]));
+        loop {
+            // println!("{:?} | {:?}",stack,input);
+            let row_stack: String = stack
+                .iter()
+                .map(|s| match s {
+                    Symbol::Terminal(t) => t.clone(),
+                    Symbol::Nonterminal(n) => n.clone(),
+                })
+                .collect::<Vec<String>>()
+                .join(" ");
+            let row_input: String = input.clone();
+            let mut row_output: String = "".to_string();
+            let x = stack.last().unwrap();
+            let x = x.clone();
+            let a = letter_re.captures(&input).unwrap().get(0).unwrap().as_str();
+            match x {
+                Symbol::Terminal(x) => {
+                    if x == a {
+                        stack.pop();
+                        input = input[a.len()..].to_string();
+                        if x == "$" {
+                            break;
+                        }
+                    } else {
+                        panic!("输入不匹配");
+                    }
+                }
+                Symbol::Nonterminal(x) => {
+                    let rule = self.table.get(&(
+                        Symbol::Nonterminal(x.to_string()),
+                        Symbol::Terminal(a.to_string()),
+                    ));
+                    match rule {
+                        Some(r) => {
+                            row_output = format!("{}->", r.0);
+                            stack.pop();
+                            let mut rule_vec = r.1.clone();
+                            rule_vec.reverse();
+                            if rule_vec.is_empty() {
+                                row_output += "ε";
+                            }
+                            for r in rule_vec {
+                                row_output += &format!("{}", r);
+                                stack.push(r);
+                            }
+                        }
+                        None => {
+                            panic!("输入不匹配: {:?} {:?}", x, a);
+                        }
+                    }
+                }
+                _ => {
+                    panic!("输入不匹配");
+                }
+            }
+            let row = Row::from([row_stack, row_input, row_output]);
+            table_t.add_row(row);
+        }
+        table_t.printstd();
     }
 }
 

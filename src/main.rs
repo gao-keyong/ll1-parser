@@ -24,5 +24,5 @@ fn main() {
     parser.add_rule("F", "num");
     parser.set_start_symbol("E");
     parser.list_rules();
-    parser.parse();
+    parser.parse(&expr);
 }
