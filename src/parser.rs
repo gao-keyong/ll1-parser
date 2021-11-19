@@ -1,4 +1,4 @@
-use prettytable::{Cell, Row, Table};
+use prettytable::{Row, Table};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -81,7 +81,7 @@ impl Parser {
         }
     }
 
-    fn getFirst(&mut self) {
+    fn get_first(&mut self) {
         loop {
             let prev_first = self.first.clone();
 
@@ -121,21 +121,21 @@ impl Parser {
         }
     }
 
-    fn printFirst(&self) {
-        let mut tableT = Table::new();
-        tableT.add_row(Row::from(["", "FIRST"]));
+    fn print_first(&self) {
+        let mut table_t = Table::new();
+        table_t.add_row(Row::from(["", "FIRST"]));
         for (key, set) in &self.first {
             let mut first_ele = String::new();
             for symbol in set {
                 first_ele += &format!("{} ", symbol);
             }
             let row = [format!("{}", key), first_ele];
-            tableT.add_row(Row::from(row));
+            table_t.add_row(Row::from(row));
         }
-        tableT.printstd();
+        table_t.printstd();
     }
 
-    fn getFollow(&mut self) {
+    fn get_follow(&mut self) {
         self.follow.insert(
             self.start_symbol.clone(),
             HashSet::from([Symbol::Terminal("$".to_string())]),
@@ -224,33 +224,33 @@ impl Parser {
         }
     }
 
-    pub fn printFollow(&self) {
-        let mut tableT = Table::new();
-        tableT.add_row(Row::from(["", "FOLLOW"]));
+    pub fn print_follow(&self) {
+        let mut table_t = Table::new();
+        table_t.add_row(Row::from(["", "FOLLOW"]));
         for (key, set) in &self.follow {
             let mut follow_ele = String::new();
             for symbol in set {
                 follow_ele += &format!("{} ", symbol);
             }
             let row = [format!("{}", key), follow_ele];
-            tableT.add_row(Row::from(row));
+            table_t.add_row(Row::from(row));
         }
-        tableT.printstd();
+        table_t.printstd();
     }
 
-    fn getTable(&mut self) {
+    fn get_table(&mut self) {
         for (key, terms) in &self.rules {
             for term in terms {
                 let mut i = 0;
                 while i < term.len() {
                     let alpha = &term[i];
                     match alpha {
-                        Symbol::Terminal(t) => {
+                        Symbol::Terminal(_) => {
                             self.table
                                 .insert((key.clone(), alpha.clone()), (key.clone(), term.clone()));
                             break;
                         }
-                        Symbol::Nonterminal(n) => {
+                        Symbol::Nonterminal(_) => {
                             for a in &self.first[&alpha] {
                                 if a != &Symbol::Terminal("".to_string()) {
                                     self.table.insert(
@@ -263,13 +263,12 @@ impl Parser {
                                 break;
                             }
                         }
-                        _ => break,
                     }
                     i += 1;
                 }
                 if i == term.len() {
                     for b in &self.follow[key] {
-                        if let Symbol::Terminal(n) = b {
+                        if let Symbol::Terminal(_) = b {
                             self.table
                                 .insert((key.clone(), b.clone()), (key.clone(), term.clone()));
                         }
@@ -279,10 +278,10 @@ impl Parser {
         }
     }
 
-    pub fn printTable(&self) {
-        let mut tableT = Table::new();
+    pub fn print_table(&self) {
+        let mut table_t = Table::new();
         let head = ["", "+", "-", "*", "/", "(", ")", "num", "$"];
-        tableT.add_row(Row::from(head));
+        table_t.add_row(Row::from(head));
         let mut rows: HashMap<Symbol, Vec<String>> = HashMap::new();
         for (key, value) in &self.table {
             // println!("{:?}:{:?}",key,value);
@@ -322,22 +321,22 @@ impl Parser {
             };
             let mut row = value.clone();
             row[0] = row_head;
-            tableT.add_row(Row::from(row));
+            table_t.add_row(Row::from(row));
         }
-        tableT.printstd();
+        table_t.printstd();
     }
 
     pub fn parse(&mut self, expr: &str) {
         println!("1. 生成FIRST和FOLLOW集合");
-        self.getFirst();
+        self.get_first();
         println!("First集合");
-        self.printFirst();
-        self.getFollow();
+        self.print_first();
+        self.get_follow();
         println!("Follow集合");
-        self.printFollow();
+        self.print_follow();
         println!("2. 生成预测分析表");
-        self.getTable();
-        self.printTable();
+        self.get_table();
+        self.print_table();
         println!("3. 语法预测分析");
         let mut input = expr.to_string() + "$";
         let num_re = Regex::new(r"[1-9]\d*(\.\d+)?").unwrap();
@@ -400,9 +399,6 @@ impl Parser {
                             panic!("输入不匹配: {:?} {:?}", x, a);
                         }
                     }
-                }
-                _ => {
-                    panic!("输入不匹配");
                 }
             }
             let row = Row::from([row_stack, row_input, row_output]);
