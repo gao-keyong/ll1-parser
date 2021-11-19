@@ -1,3 +1,4 @@
+use prettytable::{Table, Row, Cell};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -239,6 +240,7 @@ impl Parser {
                         Symbol::Terminal(t) => {
                             self.table
                                 .insert((key.clone(), alpha.clone()), (key.clone(), term.clone()));
+                            break;
                         }
                         Symbol::Nonterminal(n) => {
                             for a in &self.first[&alpha] {
@@ -249,7 +251,7 @@ impl Parser {
                                     );
                                 }
                             }
-                            if self.first[alpha].contains(&Symbol::Nonterminal("".to_string())) {
+                            if !self.first[alpha].contains(&Symbol::Nonterminal("".to_string())) {
                                 break;
                             }
                         }
@@ -259,7 +261,7 @@ impl Parser {
                 }
                 if i == term.len() {
                     for b in &self.follow[key] {
-                        if let Symbol::Nonterminal(n) = b {
+                        if let Symbol::Terminal(n) = b {
                             self.table
                                 .insert((key.clone(), b.clone()), (key.clone(), term.clone()));
                         }
@@ -270,10 +272,46 @@ impl Parser {
     }
 
     pub fn printTable(&self) {
+        let mut tableT= Table::new();
+        let head=["","+","-","*","/","(",")","num","$"];
+        tableT.add_row(Row::from(head));
+        let mut rows:HashMap<Symbol,Vec<String>>=HashMap::new();
         for (key, value) in &self.table {
-            print!("{:?}:{:?}", key, value);
-            println!();
+            // println!("{:?}:{:?}",key,value);
+            let row_symbol=&key.0;
+            let row=rows.get_mut(row_symbol);
+            let row=match row{
+                Some(r) => r,
+                None => {
+                    rows.insert(row_symbol.clone(), vec!["".to_string(); head.len()]);
+                    rows.get_mut(row_symbol).unwrap()
+                },
+            };
+            let column_symbol=&key.1;
+            let column_index=head.iter().position(|t| {
+                if let Symbol::Terminal(i) = column_symbol {
+                    return i==t;
+                }else {false}
+            }).unwrap();
+            let mut rule=format!("{}->",value.0);
+            for symbol in &value.1{
+                rule+=&format!("{}",symbol);
+            }
+            if value.1.is_empty(){
+                rule+="ε";
+            }
+            row[column_index]=rule.clone();
         }
+        for (key, value) in rows{
+            let row_head=match key{
+                Symbol::Nonterminal(n)=>n,
+                _ => panic!()
+            };
+            let mut row=value.clone();
+            row[0]=row_head;
+            tableT.add_row(Row::from(row));
+        }
+        tableT.printstd();
     }
 
     pub fn parse(&mut self) {
