@@ -1,4 +1,4 @@
-use prettytable::{Table, Row, Cell};
+use prettytable::{Cell, Row, Table};
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -122,13 +122,17 @@ impl Parser {
     }
 
     fn printFirst(&self) {
+        let mut tableT = Table::new();
+        tableT.add_row(Row::from(["", "FIRST"]));
         for (key, set) in &self.first {
-            print!("{}:", key);
+            let mut first_ele = String::new();
             for symbol in set {
-                print!("{} ", symbol);
+                first_ele += &format!("{} ", symbol);
             }
-            println!();
+            let row = [format!("{}", key), first_ele];
+            tableT.add_row(Row::from(row));
         }
+        tableT.printstd();
     }
 
     fn getFollow(&mut self) {
@@ -221,13 +225,17 @@ impl Parser {
     }
 
     pub fn printFollow(&self) {
+        let mut tableT = Table::new();
+        tableT.add_row(Row::from(["", "FOLLOW"]));
         for (key, set) in &self.follow {
-            print!("{}:", key);
+            let mut follow_ele = String::new();
             for symbol in set {
-                print!("{} ", symbol);
+                follow_ele += &format!("{} ", symbol);
             }
-            println!();
+            let row = [format!("{}", key), follow_ele];
+            tableT.add_row(Row::from(row));
         }
+        tableT.printstd();
     }
 
     fn getTable(&mut self) {
@@ -272,43 +280,48 @@ impl Parser {
     }
 
     pub fn printTable(&self) {
-        let mut tableT= Table::new();
-        let head=["","+","-","*","/","(",")","num","$"];
+        let mut tableT = Table::new();
+        let head = ["", "+", "-", "*", "/", "(", ")", "num", "$"];
         tableT.add_row(Row::from(head));
-        let mut rows:HashMap<Symbol,Vec<String>>=HashMap::new();
+        let mut rows: HashMap<Symbol, Vec<String>> = HashMap::new();
         for (key, value) in &self.table {
             // println!("{:?}:{:?}",key,value);
-            let row_symbol=&key.0;
-            let row=rows.get_mut(row_symbol);
-            let row=match row{
+            let row_symbol = &key.0;
+            let row = rows.get_mut(row_symbol);
+            let row = match row {
                 Some(r) => r,
                 None => {
                     rows.insert(row_symbol.clone(), vec!["".to_string(); head.len()]);
                     rows.get_mut(row_symbol).unwrap()
-                },
+                }
             };
-            let column_symbol=&key.1;
-            let column_index=head.iter().position(|t| {
-                if let Symbol::Terminal(i) = column_symbol {
-                    return i==t;
-                }else {false}
-            }).unwrap();
-            let mut rule=format!("{}->",value.0);
-            for symbol in &value.1{
-                rule+=&format!("{}",symbol);
+            let column_symbol = &key.1;
+            let column_index = head
+                .iter()
+                .position(|t| {
+                    if let Symbol::Terminal(i) = column_symbol {
+                        return i == t;
+                    } else {
+                        false
+                    }
+                })
+                .unwrap();
+            let mut rule = format!("{}->", value.0);
+            for symbol in &value.1 {
+                rule += &format!("{}", symbol);
             }
-            if value.1.is_empty(){
-                rule+="ε";
+            if value.1.is_empty() {
+                rule += "ε";
             }
-            row[column_index]=rule.clone();
+            row[column_index] = rule.clone();
         }
-        for (key, value) in rows{
-            let row_head=match key{
-                Symbol::Nonterminal(n)=>n,
-                _ => panic!()
+        for (key, value) in rows {
+            let row_head = match key {
+                Symbol::Nonterminal(n) => n,
+                _ => panic!(),
             };
-            let mut row=value.clone();
-            row[0]=row_head;
+            let mut row = value.clone();
+            row[0] = row_head;
             tableT.add_row(Row::from(row));
         }
         tableT.printstd();
@@ -317,6 +330,7 @@ impl Parser {
     pub fn parse(&mut self) {
         println!("1. 生成FIRST和FOLLOW集合");
         self.getFirst();
+        println!("First集合");
         self.printFirst();
         self.getFollow();
         println!("Follow集合");
